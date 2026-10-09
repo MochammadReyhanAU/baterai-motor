@@ -1,0 +1,42 @@
+# Membangun file .ipa (belum ditandatangani) di Mac milik GitHub.
+# File hasilnya dipasang ke iPhone memakai Sideloadly (Windows) + Apple ID.
+name: Build iOS (IPA)
+
+on:
+  workflow_dispatch:      # tombol "Run workflow" di tab Actions
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+
+      - name: Ambil dependensi
+        run: flutter pub get
+
+      - name: Tes protokol BMS
+        run: flutter test
+
+      - name: Build iOS (tanpa tanda tangan)
+        run: flutter build ios --release --no-codesign
+
+      - name: Bungkus jadi .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry BateraiMotor.ipa Payload
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: BateraiMotor-ipa
+          path: BateraiMotor.ipa
+          retention-days: 14
