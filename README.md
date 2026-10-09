@@ -1,6 +1,6 @@
 # Baterai Motor
 
-Aplikasi iPhone untuk memantau baterai LFP motor listrik yang memakai **JK BMS (JiKong)** lewat Bluetooth, dengan tampilan yang mudah dipahami.
+Aplikasi Android & iPhone untuk memantau baterai LFP motor listrik yang memakai **JK BMS (JiKong)** lewat Bluetooth, dengan tampilan yang mudah dipahami.
 
 ## Isi aplikasi
 
@@ -23,6 +23,16 @@ Ada juga **mode demo** (Parkir / Jalan / Dicas) memakai data dari screenshot apl
 - Protokol yang didukung: JK02 24S (firmware lama) dan JK02 32S (firmware v11 ke atas). Versi dideteksi otomatis dari struktur data BMS, tidak bergantung pada nomor versi. Model JK04 yang sangat lama (hardware v3) belum didukung.
 
 ---
+
+## Cara memasang ke HP Android
+
+1. Salin file **`BateraiMotor.apk`** ke HP (lewat kabel USB, Google Drive, atau WhatsApp ke diri sendiri).
+   - Atau unduh dari GitHub: tab **Actions** › **Build Android (APK)** › hasil build terakhir › **BateraiMotor-apk**.
+2. Buka file tersebut di HP. Jika muncul peringatan "sumber tidak dikenal", izinkan **Pasang aplikasi tidak dikenal** untuk aplikasi yang dipakai membuka file (File Manager / Drive), lalu lanjutkan.
+3. Google Play Protect mungkin memperingatkan bahwa aplikasi ini belum dikenal. Ini wajar untuk aplikasi buatan sendiri. Pilih **Tetap pasang**.
+4. Buka **Baterai Motor**, ketuk **Cari baterai saya**, lalu izinkan **Perangkat di sekitar**. Di Android 11 ke bawah, izin yang diminta adalah **Lokasi**, dan GPS harus menyala saat mencari. Ini aturan Android untuk Bluetooth, bukan karena aplikasi memakai lokasi Anda.
+
+**Kunci tanda tangan:** APK ditandatangani dengan kunci pribadi (`baterai-motor.jks`) yang disimpan **di luar repository**. Simpan file itu dan passwordnya baik-baik. Update aplikasi hanya bisa dipasang tanpa menghapus data jika memakai kunci yang sama.
 
 ## Cara memasang ke iPhone (dari Windows, tanpa Mac)
 
@@ -60,6 +70,7 @@ Buka langkah yang merah di halaman Actions, salin pesan errornya, lalu kirim ke 
 ## Untuk pengembang
 
 - Flutter 3.47.7, Dart 3.13. Tes: `flutter test` (frame asli dari esphome-jk-bms).
+- Build Android: `flutter build apk --release` (perlu Android SDK; compileSdk 37).
 - Pratinjau di browser: `flutter run -d chrome`, lalu buka `/?demo=riding` (Bluetooth tidak tersedia di web).
 - Struktur:
   - `lib/protocol/jk_protocol.dart`: perintah, penyusun frame, dan parser.

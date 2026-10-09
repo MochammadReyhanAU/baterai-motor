@@ -3,9 +3,7 @@
 name: Build iOS (IPA)
 
 on:
-  workflow_dispatch:      # tombol "Run workflow" di tab Actions
-  push:
-    branches: [main]
+  workflow_dispatch:      # jalankan manual: tab Actions > Build iOS (IPA) > Run workflow
 
 jobs:
   build:

@@ -1,0 +1,5 @@
+package com.reyhan.baterai_motor
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()

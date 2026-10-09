@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../logic/insights.dart';
 import '../services/ble_link.dart';
+import '../services/ble_permissions.dart';
 import '../state/app_state.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -26,6 +27,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   final Map<String, FoundDevice> _found = {};
   bool _scanning = false;
   String? _error;
+  bool _permanentlyDenied = false;
   Timer? _stopTimer;
 
   @override
@@ -36,12 +38,23 @@ class _ConnectScreenState extends State<ConnectScreen> {
     super.dispose();
   }
 
-  void _startScan() {
+  Future<void> _startScan() async {
     final app = context.read<AppState>();
     if (kIsWeb) {
-      setState(() => _error = 'Bluetooth hanya tersedia di aplikasi iPhone. Di sini silakan coba mode demo.');
+      setState(() => _error = 'Bluetooth hanya tersedia di aplikasi HP. Di sini silakan coba mode demo.');
       return;
     }
+    final perm = await BlePermissions.ensure();
+    if (!mounted) return;
+    if (!perm.ok) {
+      setState(() {
+        _error = perm.message;
+        _permanentlyDenied = perm.permanentlyDenied;
+      });
+      return;
+    }
+    final needLoc = await BlePermissions.needsLocationService();
+    if (!mounted) return;
     final scanner = app.scanner();
     _statusSub ??= scanner.status.listen((s) => setState(() => _status = s));
     _scanSub?.cancel();
@@ -49,12 +62,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
       _found.clear();
       _scanning = true;
       _error = null;
+      _permanentlyDenied = false;
     });
-    _scanSub = scanner.scan().listen(
+    _scanSub = scanner.scan(requireLocation: needLoc).listen(
       (d) => setState(() => _found[d.id] = d),
       onError: (Object e) => setState(() {
         _scanning = false;
-        _error = 'Gagal mencari: $e';
+        _error = needLoc
+            ? 'Gagal mencari. Pastikan Lokasi (GPS) di HP menyala. ($e)'
+            : 'Gagal mencari: $e';
       }),
     );
     _stopTimer?.cancel();
@@ -97,10 +113,19 @@ class _ConnectScreenState extends State<ConnectScreen> {
             MotorScene(state: MotorState.offline, soc: 0, bodyColor: motorColor, height: 170),
             const SizedBox(height: 8),
             if (_status == BleStatus.poweredOff)
-              _Notice(Icons.bluetooth_disabled_rounded, 'Bluetooth mati. Nyalakan lewat Control Center iPhone.'),
+              _Notice(Icons.bluetooth_disabled_rounded, 'Bluetooth mati. Nyalakan Bluetooth di HP Anda.'),
             if (_status == BleStatus.unauthorized)
-              _Notice(Icons.lock_rounded, 'Izin Bluetooth ditolak. Buka Pengaturan iPhone › Baterai Motor › nyalakan Bluetooth.'),
+              _Notice(Icons.lock_rounded, 'Izin Bluetooth belum diberikan. Ketuk "Cari baterai saya" lalu izinkan, atau buka setelan aplikasi.'),
             if (_error != null) _Notice(Icons.error_outline_rounded, _error!),
+            if (_permanentlyDenied)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: OutlinedButton.icon(
+                  onPressed: BlePermissions.openSettings,
+                  icon: const Icon(Icons.settings_rounded),
+                  label: const Text('Buka setelan izin aplikasi'),
+                ),
+              ),
             SizedBox(
               height: 56,
               child: FilledButton.icon(

@@ -23,8 +23,12 @@ class BleScanner {
 
   Stream<BleStatus> get status => ble.statusStream;
 
-  Stream<FoundDevice> scan() => ble
-      .scanForDevices(withServices: const [], scanMode: ScanMode.lowLatency)
+  Stream<FoundDevice> scan({bool requireLocation = false}) => ble
+      .scanForDevices(
+        withServices: const [],
+        scanMode: ScanMode.lowLatency,
+        requireLocationServicesEnabled: requireLocation,
+      )
       .where((d) => d.name.isNotEmpty || d.serviceUuids.any((u) => u.expanded == _jkService))
       .map((d) {
         final n = d.name.toUpperCase();
@@ -100,6 +104,12 @@ class BleLink extends BmsLink {
 
   Future<void> _setup() async {
     try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        // MTU besar = frame 300 byte datang dalam lebih sedikit potongan.
+        try {
+          await ble.requestMtu(deviceId: deviceId, mtu: 247);
+        } catch (_) {}
+      }
       await ble.discoverAllServices(deviceId);
       final services = await ble.getDiscoveredServices(deviceId);
       final svc = services.where((s) => s.id.expanded == _svc).toList();

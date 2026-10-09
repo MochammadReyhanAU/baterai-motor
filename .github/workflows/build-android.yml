@@ -1,0 +1,63 @@
+# Membangun APK Android di server GitHub (Ubuntu, gratis untuk repo publik).
+# Supaya APK hasil GitHub bisa menimpa (update) aplikasi yang sudah terpasang,
+# isi secrets berikut di Settings > Secrets and variables > Actions:
+#   BM_KEYSTORE_BASE64, BM_KEYSTORE_PASSWORD, BM_KEY_ALIAS, BM_KEY_PASSWORD
+# Tanpa secrets, APK tetap dibuat tapi ditandatangani kunci debug (harus
+# uninstall versi lama sebelum memasang).
+name: Build Android (APK)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+
+      - name: Ambil dependensi
+        run: flutter pub get
+
+      - name: Tes protokol BMS
+        run: flutter test
+
+      - name: Siapkan kunci tanda tangan
+        env:
+          KS: ${{ secrets.BM_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "BM_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secret keystore belum diisi, APK memakai kunci debug."
+          fi
+
+      - name: Build APK
+        env:
+          BM_KEYSTORE_PASSWORD: ${{ secrets.BM_KEYSTORE_PASSWORD }}
+          BM_KEY_ALIAS: ${{ secrets.BM_KEY_ALIAS }}
+          BM_KEY_PASSWORD: ${{ secrets.BM_KEY_PASSWORD }}
+        run: flutter build apk --release
+
+      - name: Ganti nama file
+        run: cp build/app/outputs/flutter-apk/app-release.apk BateraiMotor.apk
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: BateraiMotor-apk
+          path: BateraiMotor.apk
+          retention-days: 30
